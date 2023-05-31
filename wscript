@@ -79,9 +79,9 @@ def configure(conf):
     conf.load('sphinx', tooldir='waftools')
 
     if conf.options.enable_metall:
-        conf.env.CXXFLAGS += ['-std=c++17', '-pipe']
+        conf.env.CXXFLAGS += ['-std=c++17', '-pipe', '-lstdc++fs']
     else:
-        conf.env.CXXFLAGS += ['-std=c++14', '-pipe']
+        conf.env.CXXFLAGS += ['-std=c++14', '-pipe', '-lstdc++fs']
 
     conf.load('spdlog', tooldir='waftools')
     conf.load('libjson', tooldir='waftools')

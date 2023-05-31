@@ -181,7 +181,7 @@ command line options can be obtained through:
 Other problems:
 ============
 
-When conan detected a GCC version > 5 but has adjusted the 'compiler.libcxx' setting to
+1. When conan detected a GCC version > 5 but has adjusted the 'compiler.libcxx' setting to
 'libstdc++' for backwards compatibility.
 Your compiler is likely using the new CXX11 ABI by default (libstdc++11).
 
@@ -191,6 +191,23 @@ If you want Conan to use the new ABI for the default profile, run:
 
 Or edit '/home/chenyh/.conan/profiles/default' and set compiler.libcxx=libstdc++11
 
+
+2. If getting
+
+.. code-block:: shell
+
+   ../../tools/dump-graph.cc:43:10: fatal error: filesystem: No such file or directory
+   #include <filesystem>
+          ^~~~~~~~~~~~
+   compilation terminated.
+
+Try relink /usr/bin/g++ to /usr/bin/g++-9
+
+.. code-block:: shell
+
+   $ cd /usr/bin
+   $ sudo rm g++
+   $ sudo ln -s g++-9 g++
 
 Ripples Team
 ============
