@@ -49,8 +49,15 @@ First of all we need to set up the Python environment needed.
 
 .. code-block:: shell
 
-   $ pip install --user pipenv
-   $ pipenv --three
+   $ pip install --user pipenv==2021.5.29
+   # add "$HOME/.local/bin" to PATH
+   # reload shell or open a new terminal
+
+   # install pyenv 
+   $ curl https://pyenv.run | bash
+
+   # create virtual env
+   $ pipenv --python 3.7
    $ pipenv install
    $ pipenv shell
 
@@ -58,6 +65,7 @@ Then we need to install dependencies:
 
 .. code-block:: shell
 
+   $ pip install conan==1.60.0
    $ conan create conan/waf-generator user/stable
    $ conan create conan/trng user/stable
    $ conan create conan/metall user/stable
@@ -79,6 +87,20 @@ Now we are ready to configure and build ripples:
    $ ./waf configure --enable-mpi build_release
    # or without MPI support
    $ ./waf configure build_release
+
+If you get error likel: 
+/home/chenyh/.conan/data/catch2/2.13.3/_/_/package/5ab84d6acfe1f23c4fae0ab88f26e3a396351ac9/include/catch2/catch.hpp:10824:58: error: call to non-‘constexpr’ function ‘long int sysconf(int)’
+10824 |     static constexpr std::size_t sigStackSize = 32768 >= MINSIGSTKSZ ? 32768 : MINSIGSTKSZ;
+
+It is because MINSIGSTKSZ is no longer a constant in your linux kernel version (https://stackoverflow.com/questions/71454588/minsigstksz-error-after-update-in-my-manjaro-linux)
+Fix this by adding
+
+.. code-block:: c++
+
+   #undef MINSIGSTKSZ
+   #define MINSIGSTKSZ 16384
+
+before the line that uses the constant.
 
 To enable Memkind or Metal configure and build ripples with:
 
@@ -113,6 +135,9 @@ attempting to build, be sure to have the following dependencies installed:
 - `JSON <https://github.com/nlohmann/json>`_
 - `TRNG4 <https://github.com/rabauke/trng4>`_
 - An MPI library (optional)
+.. code-block:: shell
+
+   $ sudo apt-get install mpich libomp-dev openmpi-bin openmpi-doc libopenmpi-dev 
 
 The configure step can be invoked with:
 
@@ -151,6 +176,20 @@ command line options can be obtained through:
 .. code-block:: shell
 
    $ ./build/release/tools/<tool_name> --help
+
+
+Other problems:
+============
+
+When conan detected a GCC version > 5 but has adjusted the 'compiler.libcxx' setting to
+'libstdc++' for backwards compatibility.
+Your compiler is likely using the new CXX11 ABI by default (libstdc++11).
+
+If you want Conan to use the new ABI for the default profile, run:
+
+    $ conan profile update settings.compiler.libcxx=libstdc++11 default
+
+Or edit '/home/chenyh/.conan/profiles/default' and set compiler.libcxx=libstdc++11
 
 
 Ripples Team

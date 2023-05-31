@@ -75,13 +75,13 @@ def check_builtin_support(self):
             fragment=mpi_cc_sample_snippet,
             execute=False,
             mandatory=False,
-            msg = "Checking for MPI compiler builtin support")
+            msg = "Checking for MPI compiler CC builtin support")
     elif self.env.CXX:
         result = self.check_cxx(
             fragment=mpi_cc_sample_snippet,
             execute=False,
             mandatory=False,
-            msg = "Checking for MPI compiler builtin support")
+            msg = "Checking for MPI compiler CXX builtin support")
     else:
         self.fatal("One between a C and a C++ compiler must be present")
     self.env.HAVE_MPI = result
