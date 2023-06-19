@@ -191,8 +191,27 @@ If you want Conan to use the new ABI for the default profile, run:
 
 Or edit '/home/chenyh/.conan/profiles/default' and set compiler.libcxx=libstdc++11
 
+2. Before the build ripples step:
 
-2. If getting
+.. code-block:: shell
+
+   $ ./waf configure build_release
+
+Check the comiler version by running this command:
+
+.. code-block:: shell
+
+   conan profile show default
+
+If the compiler.version is NOT 9.5, you can update it by running this command:
+
+.. code-block:: shell
+
+    $ conan profile update settings.compiler.version=9.5 default
+
+Or edit '/home/chenyh/.conan/profiles/default' and set compiler.version=9.5
+
+3. If getting
 
 .. code-block:: shell
 
