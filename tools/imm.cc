@@ -180,6 +180,7 @@ int main(int argc, char **argv) {
     auto workers = CFG.streaming_workers;
     auto gpu_workers = CFG.streaming_gpu_workers;
     decltype(R.Total) real_total;
+    std::cout << "in parallel\n";
     if (CFG.diffusionModel == "IC") {
       ripples::StreamingRRRGenerator<
           decltype(G), decltype(generator),
@@ -194,6 +195,7 @@ int main(int argc, char **argv) {
       R.Total = end - start - R.Total;
       real_total = end - start;
     } else if (CFG.diffusionModel == "LT") {
+      std::cout << "in other\n";
       ripples::StreamingRRRGenerator<
           decltype(G), decltype(generator),
           typename ripples::RRRsets<decltype(G)>::iterator,
@@ -207,6 +209,8 @@ int main(int argc, char **argv) {
       R.Total = end - start - R.Total;
       real_total = end - start;
     }
+
+    std::cout << "OMP num threads: " << omp_get_num_threads() << std::endl;
 
     console->info("IMM Parallel : {}ms", R.Total.count());
     console->info("IMM Parallel Real Total : {}ms", real_total.count());

@@ -392,6 +392,7 @@ class MPIStreamingFindMostInfluential {
 //! \brief Select k seeds starting from the a list of Random Reverse
 //! Reachability Sets.
 //!
+//! Used in IMM 
 //! \tparam GraphTy The graph type.
 //! \tparam RRRset The type storing Random Reverse Reachability Sets.
 //!
@@ -410,7 +411,7 @@ auto FindMostInfluentialSet(const GraphTy &G, size_t k,
   using vertex_type = typename GraphTy::vertex_type;
   std::vector<uint32_t> vertexCoverage(G.num_nodes(), 0);
   std::vector<uint32_t> reduceCoverageInfo(G.num_nodes(), 0);
-
+  std::cout<<"FindMostInfluential in mpi omp parallel\n";
   auto cmp = [](std::pair<vertex_type, uint32_t> &a,
                 std::pair<vertex_type, uint32_t> &b) {
     return a.second < b.second;
@@ -501,7 +502,10 @@ auto FindMostInfluentialSet(const GraphTy &G, size_t k,
   std::cout << "Fraction covered " << f << std::endl;
 
   return std::make_pair(f, result);
-}
+} // auto FindMostInfluential
+
+
+
 #endif
 
 template <typename GraphTy, typename ConfTy, typename RRRset>

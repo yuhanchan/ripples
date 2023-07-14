@@ -151,6 +151,8 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
   CPUWalkWorker(const GraphTy &G, const PRNGeneratorTy &rng)
       : WalkWorker<GraphTy, ItrTy>(G), rng_(rng), u_(0, G.num_nodes()) {}
 
+// Used in OpenMP Implementation
+
   void svc_loop(std::atomic<size_t> &mpmc_head, ItrTy begin, ItrTy end) {
     size_t offset = 0;
     while ((offset = mpmc_head.fetch_add(batch_size_)) <
@@ -788,6 +790,8 @@ class StreamingRRRGenerator {
 #endif
 
     mpmc_head.store(0);
+
+    std::cout << "num_cpu: " << num_cpu_workers_ << ", num_gpu: " << num_gpu_workers_ << std::endl;
 
 #pragma omp parallel num_threads(num_cpu_workers_ + num_gpu_workers_)
     {
