@@ -81,9 +81,6 @@ namespace ripples {
 //!
 //! \return a pair where the size_t is the number of RRRset covered and
 //! the set of vertices selected as seeds.
-
-//FindMostInfluentialSet_SEQUENTIAL
-
 template <typename GraphTy, typename ConfTy, typename RRRset>
 auto FindMostInfluentialSet(const GraphTy &G, const ConfTy &CFG,
                             std::vector<RRRset> &RRRsets,
@@ -170,19 +167,11 @@ auto FindMostInfluentialSet(const GraphTy &G, const ConfTy &CFG,
   return std::make_pair(f, result);
 }
 
-//FindMostInfluentialSet_PARALLEL
-int x=0;
-
 template <typename GraphTy, typename ConfTy, typename RRRset>
 auto FindMostInfluentialSet(const GraphTy &G, const ConfTy &CFG,
                             std::vector<RRRset> &RRRsets,
                             IMMExecutionRecord &record, bool enableGPU,
                             omp_parallel_tag &&ex_tag) {
-  ++x;
-  if(x==1){
-    std::cout<<"FindMostInfluentialSet in parallel\n";
-  }                      
-  
   size_t num_gpu = 0;
   size_t num_max_cpu = 0;
 #pragma omp single
@@ -190,11 +179,11 @@ auto FindMostInfluentialSet(const GraphTy &G, const ConfTy &CFG,
     num_max_cpu =
         std::min<size_t>(omp_get_max_threads(), CFG.seed_select_max_workers);
   }
-// #ifdef RIPPLES_ENABLE_CUDA
-//   if (enableGPU) {
-//     num_gpu = std::min(cuda_num_devices(), CFG.seed_select_max_gpu_workers);
-//   }
-// #endif
+#ifdef RIPPLES_ENABLE_CUDA
+  if (enableGPU) {
+    num_gpu = std::min(cuda_num_devices(), CFG.seed_select_max_gpu_workers);
+  }
+#endif
   StreamingFindMostInfluential<GraphTy> SE(G, RRRsets, num_max_cpu, num_gpu);
   return SE.find_most_influential_set(CFG.k);
 }
@@ -225,16 +214,12 @@ void MoveRRRSets(Itr in_begin, Itr in_end, uint32_t *d_rrr_index,
            sizeof(uint32_t) * rrr_sets_size);
 }
 
-//FindMostInfluentialSet_CUDA
-
 template <typename GraphTy, typename RRRset>
 auto FindMostInfluentialSet(const GraphTy &G, size_t k,
                             std::vector<RRRset> &RRRsets,
                             IMMExecutionRecord &record,
                             cuda_parallel_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;
-
-  std::cout<<"FindMostInfluentialSet in CUDA\n";
 
   size_t rrr_sets_size = 0;
 #pragma omp parallel for reduction(+ : rrr_sets_size)

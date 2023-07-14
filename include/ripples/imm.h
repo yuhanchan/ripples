@@ -138,6 +138,7 @@ ssize_t ThetaPrime(ssize_t x, double epsilonPrime, double l, size_t k,
 inline size_t Theta(double epsilon, double l, size_t k, double LB,
                     size_t num_nodes) {
   if (LB == 0) return 0;
+
   k = std::min(k, num_nodes/2);
   double term1 = 0.6321205588285577;  // 1 - 1/e
   double alpha = sqrt(l * std::log(num_nodes) + std::log(2));
@@ -151,8 +152,6 @@ inline size_t Theta(double epsilon, double l, size_t k, double LB,
 }
 
 //! Collect a set of Random Reverse Reachable set.
-//! 
-//! Used for OpenMP Implementation
 //!
 //! \tparam GraphTy The type of the input graph.
 //! \tparam RRRGeneratorTy The type of the RRR generator.
@@ -187,15 +186,12 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   #else
   RRRsetAllocator<vertex_type> allocator;
   #endif
-  std::vector<RRRset<GraphTy>> RR; ////
+  std::vector<RRRset<GraphTy>> RR;
 
   auto start = std::chrono::high_resolution_clock::now();
   size_t thetaPrime = 0;
   for (ssize_t x = 1; x < std::log2(G.num_nodes()); ++x) {
     // Equation 9
-    if(x==1){
-      std::cout << "ThetaPrime Called\n";
-    }
     ssize_t thetaPrime = ThetaPrime(x, epsilonPrime, l, k, G.num_nodes(),
                                     std::forward<execution_tag>(ex_tag));
 
@@ -247,8 +243,6 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
 
       auto begin = RR.end() - final_delta;
 
-//     std::cout<<"begin :" << begin<< std::endl;
-//     How do you print begin?
       GenerateRRRSets(G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<execution_tag>(ex_tag));
@@ -256,7 +250,7 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
   });
 
   return RR;
-} //auto Sampling
+}
 
 template <typename GraphTy, typename ConfTy, typename RRRGeneratorTy,
           typename diff_model_tag>
@@ -332,7 +326,6 @@ auto Sampling(const GraphTy &G, const ConfTy &CFG, double l,
 
       auto begin = RR.end() - final_delta;
 
-//generate_rrr_sets.h CUDA 
       GenerateRRRSets(G, generator, begin, RR.end(), record,
                       std::forward<diff_model_tag>(model_tag),
                       std::forward<sequential_tag>(ex_tag));
@@ -391,8 +384,6 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 
 //! The IMM algroithm for Influence Maximization
 //!
-//! IMM USED IN PARALLEL EXECUTION
-//!
 //! \tparam GraphTy The type of the input graph.
 //! \tparam ConfTy The configuration type
 //! \tparam PRNG The type of the parallel random number generator.
@@ -405,12 +396,8 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, PRNG &gen,
 //! \param gen The parallel random number generator.
 //! \param model_tag The diffusion model tag.
 //! \param ex_tag The execution policy tag.
-
-//GS
-//What does template used for: SYNTAX
 template <typename GraphTy, typename ConfTy, typename GeneratorTy,
           typename diff_model_tag>
-
 auto IMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
          diff_model_tag &&model_tag, omp_parallel_tag &&ex_tag) {
   using vertex_type = typename GraphTy::vertex_type;
@@ -418,34 +405,27 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   double epsilon = CFG.epsilon;
   auto &record(gen.execution_record());
 
-  std::cout << "IMM Called\n";
-
-//GS
-// Relate this to pseudocode
   l = l * (1 + 1 / std::log2(G.num_nodes()));
 
-  auto R =Sampling(G, CFG, l, gen, record, std::forward<diff_model_tag>(model_tag),
+  auto R =
+      Sampling(G, CFG, l, gen, record, std::forward<diff_model_tag>(model_tag),
                std::forward<omp_parallel_tag>(ex_tag));
 
-//GS
-//ignore
-// #if CUDA_PROFILE
-//   auto logst = spdlog::stdout_color_st("IMM-profile");
-//   std::vector<size_t> rrr_sizes;
-//   size_t sizeBytes = 0;
-//   for (auto &rrr_set : R) {
-//     rrr_sizes.push_back(rrr_set.size());
-//     sizeBytes += rrr_set.size() * sizeof(rrr_set[0]);
-//   }
-//   record.RRRSetSize = sizeBytes;
-//   print_profile_counter(logst, rrr_sizes, "RRR sizes");
-// #endif
+#if CUDA_PROFILE
+  auto logst = spdlog::stdout_color_st("IMM-profile");
+  std::vector<size_t> rrr_sizes;
+  size_t sizeBytes = 0;
+  for (auto &rrr_set : R) {
+    rrr_sizes.push_back(rrr_set.size());
+    sizeBytes += rrr_set.size() * sizeof(rrr_set[0]);
+  }
+  record.RRRSetSize = sizeBytes;
+  print_profile_counter(logst, rrr_sizes, "RRR sizes");
+#endif
 
-//GS
-//How RRR sets are stored in memory, i.e., thier data structures
-//Phase-3: FindMostInfluential Started, We already have a collection of RRR sets bby now
   auto start = std::chrono::high_resolution_clock::now();
-  const auto &S = FindMostInfluentialSet(G, CFG, R, record, gen.isGpuEnabled(),
+  const auto &S =
+      FindMostInfluentialSet(G, CFG, R, record, gen.isGpuEnabled(),
                              std::forward<omp_parallel_tag>(ex_tag));
   auto end = std::chrono::high_resolution_clock::now();
 
@@ -453,11 +433,6 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
 
   start = std::chrono::high_resolution_clock::now();
   size_t total_size = 0;
-
-//GS
-//Why the following block is parallelised? Also why the total execution time is given 
-//by subtracting end-start for this block
-
 #pragma omp parallel for reduction(+:total_size)
   for (size_t i = 0; i < R.size(); ++i) {
     total_size += R[i].size() * sizeof(vertex_type);
@@ -466,11 +441,8 @@ auto IMM(const GraphTy &G, const ConfTy &CFG, double l, GeneratorTy &gen,
   end = std::chrono::high_resolution_clock::now();
   record.Total = end - start;
 
-  return S.second; //S.second returns the seeds to IMM.cc, .second as FindMostInfluential
-                   //returns a pair of output where the first one is no. of RRR Sets covered
-                   //.second given by boost library
-
-} //auto IMM 
+  return S.second;
+}
 
 }  // namespace ripples
 

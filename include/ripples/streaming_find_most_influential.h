@@ -551,7 +551,7 @@ class StreamingFindMostInfluential {
     for (size_t j = 1; j < num_threads; j <<= 1) {
 #pragma omp parallel num_threads(num_threads >> j)
       {
-#pragma omp for schedule(dynamic) ////
+#pragma omp for schedule(dynamic)
         for (size_t i = 0; i < (num_threads - j); i += j * 2) {
           indices[i] = indices[i].mergeBlocks(indices[i + j],
                                               std::min(2 * j, num_threads));
