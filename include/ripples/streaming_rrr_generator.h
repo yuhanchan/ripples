@@ -79,45 +79,47 @@ int streaming_command_line(std::unordered_map<size_t, size_t> &worker_to_gpu,
     return -1;
   }
 
-#ifdef RIPPLES_ENABLE_CUDA
-  auto num_gpus = cuda_num_devices();
-  if (!gpu_mapping_string.empty()) {
-    size_t gpu_id = 0;
-    std::istringstream iss(gpu_mapping_string);
-    std::string token;
-    while (worker_to_gpu.size() < streaming_gpu_workers &&
-           std::getline(iss, token, ',')) {
-      std::stringstream omp_num_ss(token);
-      size_t omp_num;
-      omp_num_ss >> omp_num;
-      if (!(omp_num < streaming_workers)) {
-        console->error("invalid worker in worker-to-GPU mapping: {}", omp_num);
-        return -1;
-      }
-      if (worker_to_gpu.find(omp_num) != worker_to_gpu.end()) {
-        console->error("duplicated worker-to-GPU mapping: {}", omp_num);
-        return -1;
-      }
-      worker_to_gpu[omp_num] = gpu_id++;
-      if (gpu_id == num_gpus) gpu_id = 0;
-    }
-    if (worker_to_gpu.size() < streaming_gpu_workers) {
-      console->error("GPU mapping string is too short");
-      return -1;
-    }
-  } else {
-    // by default, map GPU workers after CPU workers
-    size_t gpu_id = 0;
-    size_t omp_num = streaming_workers - streaming_gpu_workers;
-    for (; omp_num < streaming_workers; ++omp_num) {
-      worker_to_gpu[omp_num] = gpu_id++;
-      if (gpu_id == num_gpus) gpu_id = 0;
-    }
-  }
-#else   // RIPPLES_ENABLE_CUDA
+// #ifdef RIPPLES_ENABLE_CUDA
+//   auto num_gpus = cuda_num_devices();
+//   if (!gpu_mapping_string.empty()) {
+//     size_t gpu_id = 0;
+//     std::istringstream iss(gpu_mapping_string);
+//     std::string token;
+//     while (worker_to_gpu.size() < streaming_gpu_workers &&
+//            std::getline(iss, token, ',')) {
+//       std::stringstream omp_num_ss(token);
+//       size_t omp_num;
+//       omp_num_ss >> omp_num;
+//       if (!(omp_num < streaming_workers)) {
+//         console->error("invalid worker in worker-to-GPU mapping: {}", omp_num);
+//         return -1;
+//       }
+//       if (worker_to_gpu.find(omp_num) != worker_to_gpu.end()) {
+//         console->error("duplicated worker-to-GPU mapping: {}", omp_num);
+//         return -1;
+//       }
+//       worker_to_gpu[omp_num] = gpu_id++;
+//       if (gpu_id == num_gpus) gpu_id = 0;
+//     }
+//     if (worker_to_gpu.size() < streaming_gpu_workers) {
+//       console->error("GPU mapping string is too short");
+//       return -1;
+//     }
+//   } else {
+//     // by default, map GPU workers after CPU workers
+//     size_t gpu_id = 0;
+//     size_t omp_num = streaming_workers - streaming_gpu_workers;
+//     for (; omp_num < streaming_workers; ++omp_num) {
+//       worker_to_gpu[omp_num] = gpu_id++;
+//       if (gpu_id == num_gpus) gpu_id = 0;
+//     }
+//   }
 
-  assert(streaming_gpu_workers == 0);
-#endif  // RIPPLES_ENABLE_CUDA
+
+// #else   // RIPPLES_ENABLE_CUDA
+
+//   assert(streaming_gpu_workers == 0);
+// #endif  // RIPPLES_ENABLE_CUDA
   return 0;
 }
 
@@ -125,6 +127,7 @@ template <typename GraphTy, typename ItrTy>
 class WalkWorker {
   using vertex_t = typename GraphTy::vertex_type;
 
+//What does the virtual void means
  public:
   WalkWorker(const GraphTy &G) : G_(G) {}
   virtual ~WalkWorker() {}
@@ -134,12 +137,12 @@ class WalkWorker {
  protected:
   const GraphTy &G_;
 
-#if CUDA_PROFILE
- public:
-  virtual void begin_prof_iter() = 0;
-  virtual void prof_record(typename IMMExecutionRecord::walk_iteration_prof &,
-                           size_t) = 0;
-#endif
+// #if CUDA_PROFILE
+//  public:
+//   virtual void begin_prof_iter() = 0;
+//   virtual void prof_record(typename IMMExecutionRecord::walk_iteration_prof &,
+//                            size_t) = 0;
+// #endif
 };
 
 template <typename GraphTy, typename PRNGeneratorTy, typename ItrTy,
@@ -151,7 +154,10 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
   CPUWalkWorker(const GraphTy &G, const PRNGeneratorTy &rng)
       : WalkWorker<GraphTy, ItrTy>(G), rng_(rng), u_(0, G.num_nodes()) {}
 
+// Used in OpenMP Implementation
+
   void svc_loop(std::atomic<size_t> &mpmc_head, ItrTy begin, ItrTy end) {
+
     size_t offset = 0;
     while ((offset = mpmc_head.fetch_add(batch_size_)) <
            std::distance(begin, end)) {
@@ -170,9 +176,9 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
   trng::uniform_int_dist u_;
 
   void batch(ItrTy first, ItrTy last) {
-#if CUDA_PROFILE
-    auto start = std::chrono::high_resolution_clock::now();
-#endif
+// #if CUDA_PROFILE
+//     auto start = std::chrono::high_resolution_clock::now();
+// #endif
     auto size = std::distance(first, last);
     auto local_rng = rng_;
     auto local_u = u_;
@@ -184,13 +190,15 @@ class CPUWalkWorker : public WalkWorker<GraphTy, ItrTy> {
 
     rng_ = local_rng;
     u_ = local_u;
-#if CUDA_PROFILE
-    auto &p(prof_bd.back());
-    p.d_ += std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::high_resolution_clock::now() - start);
-    p.n_ += size;
-#endif
-  }
+// #if CUDA_PROFILE
+//     auto &p(prof_bd.back());
+//     p.d_ += std::chrono::duration_cast<std::chrono::nanoseconds>(
+//         std::chrono::high_resolution_clock::now() - start);
+//     p.n_ += size;
+// #endif
+ 
+ 
+  } // void batch
 
 #if CUDA_PROFILE
  public:
@@ -781,13 +789,15 @@ class StreamingRRRGenerator {
   IMMExecutionRecord &execution_record() { return record_; }
 
   void generate(ItrTy begin, ItrTy end) {
-#if CUDA_PROFILE
-    auto start = std::chrono::high_resolution_clock::now();
-    for (auto &w : workers) w->begin_prof_iter();
-    record_.WalkIterations.emplace_back();
-#endif
+// #if CUDA_PROFILE
+//     auto start = std::chrono::high_resolution_clock::now();
+//     for (auto &w : workers) w->begin_prof_iter();
+//     record_.WalkIterations.emplace_back();
+// #endif
 
     mpmc_head.store(0);
+
+    std::cout << "num_cpu: " << num_cpu_workers_ << ", num_gpu: " << num_gpu_workers_ << std::endl;
 
 #pragma omp parallel num_threads(num_cpu_workers_ + num_gpu_workers_)
     {

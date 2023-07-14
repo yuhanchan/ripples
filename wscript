@@ -36,6 +36,7 @@
 VERSION = '0.0.1'
 APPNAME = 'ripples'
 
+import os
 
 def options(opt):
     opt.load('compiler_cxx')
@@ -92,6 +93,10 @@ def configure(conf):
     conf.check_cxx(cxxflags=['-fopenmp'], ldflags=['-fopenmp'],
                    libpath=['{0}'.format(conf.options.openmp_root)],
                    uselib_store='OpenMP')
+    
+    conf.env.CXX = "g++-9"
+    if "CXX" in os.environ and os.environ['CXX']: # Pull in the compiler
+        conf.env.CXX = os.environ['CXX'] # override default
 
     if conf.options.enable_mpi:
         conf.load('mpi', tooldir='waftools')
